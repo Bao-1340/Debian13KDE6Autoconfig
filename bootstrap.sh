@@ -99,12 +99,21 @@ sort -u -o "$MISSING_FILE" "$MISSING_FILE"
 if command -v flatpak >/dev/null 2>&1; then
   while IFS=$'\t' read -r remote_name remote_url _; do
     [[ -n "$remote_name" && -n "$remote_url" ]] || continue
-    sudo flatpak remote-add --if-not-exists "$remote_name" "$remote_url"
+    if [[ "$remote_name" == flathub ]]; then
+      # A bare repository URL does not carry Flathub's public GPG key. Replace
+      # even a partially-created remote from an earlier interrupted bootstrap.
+      sudo flatpak remote-delete --force "$remote_name" >/dev/null 2>&1 || true
+      sudo flatpak remote-add --from "$remote_name" \
+        https://flathub.org/repo/flathub.flatpakrepo
+    else
+      sudo flatpak remote-add --if-not-exists "$remote_name" "$remote_url"
+    fi
   done < "$ROOT_DIR/manifests/flatpak-remotes.tsv"
 
   while IFS=$'\t' read -r app_id origin branch _; do
     [[ -n "$app_id" ]] || continue
-    sudo flatpak install --noninteractive -y "${origin:-flathub}" "$app_id" "${branch:-stable}" || true
+    app_ref="$app_id//${branch:-stable}"
+    sudo flatpak install --noninteractive -y "${origin:-flathub}" "$app_ref" || true
   done < "$ROOT_DIR/manifests/flatpak-apps.tsv"
 fi
 
