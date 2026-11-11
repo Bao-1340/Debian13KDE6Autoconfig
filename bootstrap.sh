@@ -30,6 +30,27 @@ sudo -v
 
 "$ROOT_DIR/scripts/restore-apt-sources.sh"
 
+# Keep package installation fully unattended. `apt-get -y` only confirms APT's
+# own questions; package-specific debconf dialogs otherwise still open.
+APT_ENV=(
+  DEBIAN_FRONTEND=noninteractive
+  DEBCONF_NONINTERACTIVE_SEEN=true
+  APT_LISTCHANGES_FRONTEND=none
+  NEEDRESTART_MODE=a
+)
+APT_OPTIONS=(
+  -y
+  -o Dpkg::Options::=--force-confold
+  -o Dpkg::Use-Pty=0
+)
+
+# Preserve the safe default: do not randomize the MAC address automatically.
+printf '%s\n' 'macchanger macchanger/automatically_run boolean false' \
+  | sudo debconf-set-selections
+
+# Recover cleanly when a previous bootstrap was interrupted during dpkg setup.
+sudo env "${APT_ENV[@]}" dpkg --configure -a
+
 mapfile -t requested_packages < <(grep -Ev '^[[:space:]]*(#|$)' "$ROOT_DIR/manifests/apt-manual.txt" | sort -u)
 available_packages=()
 missing_packages=()
@@ -55,10 +76,11 @@ printf '%s\n' "${missing_packages[@]:-}" | sed '/^$/d' > "$MISSING_FILE"
 install_batch() {
   local -a batch=("$@")
   (( ${#batch[@]} > 0 )) || return 0
-  if ! sudo apt-get install -y "${batch[@]}"; then
+  if ! sudo env "${APT_ENV[@]}" apt-get "${APT_OPTIONS[@]}" install "${batch[@]}"; then
     printf 'A package batch failed; retrying its packages individually.\n'
     for package_name in "${batch[@]}"; do
-      sudo apt-get install -y "$package_name" || printf 'Failed APT package: %s\n' "$package_name" >> "$MISSING_FILE"
+      sudo env "${APT_ENV[@]}" apt-get "${APT_OPTIONS[@]}" install "$package_name" \
+        || printf 'Failed APT package: %s\n' "$package_name" >> "$MISSING_FILE"
     done
   fi
 }
