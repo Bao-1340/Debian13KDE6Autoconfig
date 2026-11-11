@@ -1,0 +1,3 @@
+ms-python.debugpy@2026.6.0
+ms-python.python@2026.4.0
+ms-python.vscode-python-envs@1.42.0

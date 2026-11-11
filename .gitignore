@@ -1,0 +1,29 @@
+# Runtime output
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# Local restore/export state
+.state/
+backups/
+
+# Never commit secrets or bulky personal data
+**/.ssh/
+**/.gnupg/
+**/.aws/
+**/.kube/
+**/.password-store/
+**/kwalletd/
+**/*.kdbx
+**/*.pem
+**/*.p12
+**/*.pfx
+**/id_rsa*
+**/id_ed25519*
+**/credentials*
+**/Cookies
+**/Login Data
+**/Web Data
+**/History

@@ -1,0 +1,1 @@
+deb [signed-by=/etc/apt/trusted.gpg.d/insynchq.gpg] http://apt.insync.io/debian trixie non-free contrib
